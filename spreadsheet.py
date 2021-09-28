@@ -147,7 +147,8 @@ class SpreadSheet:
             A list of ordered dict to manage.
         '''
         self.data = data
-        self.index = index
+        self.index_keys = index
+        self.index = dict(((value, num) for num, value in enumerate(index)))
         self.name = name
         self.type = iter_type
 
@@ -163,7 +164,9 @@ class SpreadSheet:
         with open(fname) as fp:
             text = fp.readlines()
         data = list(csv.reader(text))
-        self.index = index if index else data.pop(0)
+        self.index_keys = index if index else data.pop(0)
+        self.index = dict(((value, num) for num, value
+                           in enumerate(self.index_keys)))
         self.data = as_itertype(data, self.type)
         return self
 
@@ -173,7 +176,7 @@ class SpreadSheet:
         self.calc()
         self.data = cast(list, self.data)
         if isinstance(args, tuple):
-            return self.data[args[0]][self.index.index(args[1])]
+            return self.data[args[0]][self.index[args[1]]]
         elif self.data is None:
             return []
         elif isinstance(args, Column):
@@ -184,7 +187,7 @@ class SpreadSheet:
         elif hasattr(args, '__iter__') and not isinstance(args, str):
             args = cast(Iterable, args)
             return SpreadSheet(
-                self.index,
+                self.index_keys,
                 self.data[args] if isinstance(self.data, np.ndarray)
                 else [d for d, a in zip(self.data, args) if a],
                 self.name, self.type
@@ -193,9 +196,9 @@ class SpreadSheet:
             return dict(zip(self.index, self.data[args]))
         elif isinstance(args, str):
             return Column(
-                self.data[:, self.index.index(args)]
+                self.data[:, self.index[args]]
                 if isinstance(self.data, np.ndarray)
-                else (d[self.index.index(args)] for d in self.data),
+                else (d[self.index[args]] for d in self.data),
                 id(self),
                 args)
 
@@ -226,13 +229,13 @@ class SpreadSheet:
             texts :List[List[str]] = []
             length: List[int] = []
             result: List[str] = []
-            texts.append(self.index)
+            texts.append(self.index_keys)
             for d in cast(list, self.data)[:max_len]:
                 texts.append(d)
-            for n, i in enumerate(self.index):
+            for n, i in enumerate(self.index_keys):
                 length.append(max(len(as_str(t[n])) for t in texts))
             result.append(' '.join((set_text_length(as_str(i), length[n])
-                                    for n, i in enumerate(self.index))))
+                                    for n, i in enumerate(self.index_keys))))
             for d in cast(list, self.data)[:max_len]:
                 result.append(' '.join(
                     (set_text_length(as_str(x), length[n])
@@ -247,20 +250,20 @@ class SpreadSheet:
         Returns
         new SpreadSheet
         '''
-        index = self.index.index(label)
+        index = self.index[label]
         def wrap(d: list) -> bool:
             return func(d[index])
         return SpreadSheet(
-            self.index,
+            self.index_keys,
             self.data[func(self.data)] if isinstance(self.data, np.ndarray)
             else filter(wrap, self.data),
             self.name, self.type)
 
 
     def isin(self, label: str, target: Iterable) -> 'SpreadSheet':
-        index = self.index.index(label)
+        index = self.index[label]
         def wrap(d: list) -> bool: return d[index] in target
-        return SpreadSheet(self.index, filter(wrap, self.data),
+        return SpreadSheet(self.index_keys, filter(wrap, self.data),
                            self.name, self.type)
 
 
@@ -283,22 +286,22 @@ class SpreadSheet:
             return SpreadSheet()
         data = deepcopy(self.data)
         if isinstance(labels, str):
-            index = self.index.index(labels)
+            index = self.index[labels]
             for d in data:
                 d[index] = cast(Callable, func)(d[index])
         elif hasattr(func, '__iter__'):
-            indices = [self.index.index(label) for label in labels]
+            indices = [self.index[label] for label in labels]
             for d in data:
                 for index, one_func in zip(indices, cast(Iterable, func)):
                     d[index] = one_func(d[index])
         else:
-            indices = [self.index.index(label) for label in labels]
+            indices = [self.index[label] for label in labels]
             for d in data:
                 results = cast(Callable, func)(
                     *(d[index] for index in indices))
                 for index, result in zip(indices, results):
                     d[index] = result
-        return SpreadSheet(self.index, data, self.name, self.type)
+        return SpreadSheet(self.index_keys, data, self.name, self.type)
 
 
     def __len__(self) -> int:
@@ -316,9 +319,11 @@ class SpreadSheet:
             It gets dictionary and returns value.
         '''
         self.calc()
-        self.index.append(new_label)
+        self.index_keys.append(new_label)
+        self.index = dict(((value, num) for num, value
+                           in enumerate(self.index_keys)))
         for data in self.data:
-            data.append(func(dict(zip(self.index, data))))
+            data.append(func(dict(zip(self.index_keys, data))))
         return self
 
     def make_dict(self, label: str, element: Optional[str] = None) -> dict:
@@ -353,10 +358,12 @@ class SpreadSheet:
                      for l in base_dict.keys()
                      if l in spre_dict]
 
-        base.index = [header + b for b in base.index]
-        base.index += [header2+i if i in base.index
+        base.index_keys = [header + b for b in base.index_keys]
+        base.index_keys += [header2+i if i in base.index_keys
                        else header2+i+'_'
-                       for i in spreadsheet.index]
+                       for i in spreadsheet.index_keys]
+        base.index = dict(((value, num) for num, value
+                           in enumerate(base.index_keys)))
         base.data = [b+s for b, s in zip(base.data, spreadsheet.data)]
         return base
 
@@ -369,12 +376,12 @@ class SpreadSheet:
             File name of csv.
         '''
         if fname is None:
-            print(join_as_csv(self.index))
+            print(join_as_csv(self.index_keys))
             for data in self.data:
                 print(join_as_csv(data))
         else:
             with open(fname, 'w') as fp:
-                fp.write(join_as_csv(self.index))
+                fp.write(join_as_csv(self.index_keys))
                 fp.writelines(join_as_csv(data)
                               for data in self.data)
 
@@ -387,17 +394,19 @@ class SpreadSheet:
             Data to add.
         '''
         self.calc()
-        container = [None] * len(self.index)
+        container = [None] * len(self.index_keys)
         unknown_index = []
         for n in data.keys():
             if n in self.index:
-                container[self.index.index(n)] = data[n]
+                container[self.index_keys.index(n)] = data[n]
             else:
                 unknown_index.append(n)
-        self.index += unknown_index
+        self.index_keys += unknown_index
         self.data = [d + [None] * len(unknown_index)
                      for d in self.data]
         self.data.append(container + [data[u] for u in unknown_index])
+        self.index = dict(((value, num) for num, value
+                           in enumerate(self.index_keys)))
 
     def __add__(self, spreadsheet: 'SpreadSheet') -> 'SpreadSheet':
         '''
@@ -418,8 +427,9 @@ class SpreadSheet:
         '''
         Delete column as a mutable object.
         '''
-        index = self.index.index(label)
-        self.index.pop(index)
+        index = self.index_keys.index(label)
+        self.index_keys.pop(index)
+        self.index.pop(label)
         for data in self.data:
             data.pop(index)
         return self
@@ -451,8 +461,10 @@ class SpreadSheet:
         result.data = []
         for frag in fragments:
             result.data += frag.data
-        result.index.append(new_label)
-        result.index.append(new_data)
+        result.index_keys.append(new_label)
+        result.index_keys.append(new_data)
+        result.index = dict(((value, num) for num, value
+                           in enumerate(result.index_keys)))
         return result
 
     def split_label(self, label: str, new_labels: List[str],
@@ -472,10 +484,12 @@ class SpreadSheet:
             Separator of string.
         '''
         result = deepcopy(self)
-        index = result.index.index(label)
-        result.index += new_labels
+        index = result.index[label]
+        result.index_keys += new_labels
         for data in result.data:
             data += data[index].split(sep)
+        result.index = dict(((value, num) for num, value
+                           in enumerate(result.index_keys)))
         return result
 
     def __iter__(self) -> 'SpreadSheet':
