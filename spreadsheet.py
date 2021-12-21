@@ -1,19 +1,50 @@
 from typing import (Callable, Optional, List, Union, cast,
-                    Iterable, Any, Generator)
+                    Iterable, Any, Generator, Iterator)
 from pathlib import Path
 from copy import deepcopy
 import csv
 import operator
-import numpy as np
 from enum import Enum
+from itertools import tee
+try:
+    import numpy as np
+except:
+    class np:
+        def array(self): pass
+        class ndarray: pass
 
-def xlsx2csv(ffname: str, tfname: str, worksheet: int = 0) -> None:
-    from openpyxl import load_workbook
-    ws = load_workbook(ffname).worksheets[worksheet]
-    with open(tfname, 'w', newline='') as fp:
-        writer = csv.writer(fp)
-        for row in ws.rows:
-            writer.writerow([cell.value for cell in row])
+class ListLikeIterator:
+    def __init__(self, data: Optional[Iterable] = None):
+        self.data: List[Iterator] = [] if data is None else [iter(data)]
+
+    def __iter__(self) -> 'ListLikeIterator':
+        self._iter_num = 0
+        return self
+
+    def __next__(self) -> Any:
+        try:
+            result = self.data[self._iter_num].__next__()
+        except StopIteration as er:
+            self._iter_num += 1
+            if self._iter_num == len(self.data):
+                raise StopIteration()
+            result = self.data[self._iter_num].__next__()
+        return result
+
+    def __add__(self, data: Iterable) -> 'ListLikeIterator':
+        inner: List[Iterator] = []
+        outer: List[Iterator] = []
+        for d in self.data:
+            tmp_in, tmp_out = tee(d)
+            inner.append(tmp_in)
+            outer.append(tmp_out)
+        self.data = inner
+        result = ListLikeIterator()
+        result.data = outer + [iter(data)]
+        return result
+
+    def append(self, data: Iterable) -> None:
+        self.data.append(iter(data))
 
 def join_as_csv(texts: Iterable[str]) -> str:
     return ','.join(f'"{text}"' for text in texts) + '\n'
@@ -139,9 +170,9 @@ class SpreadSheet:
         Data of spread sheet.
     '''
     def __init__(self, index: list = [],
-                 data: Union[Iterable, np.array] = [],
+                 data: Union[list, tuple, ListLikeIterator, np.array] = [],
                  name: str = '',
-                 iter_type: IterType = IterType.list) -> None:
+                 iter_type: IterType = IterType.tuple) -> None:
         '''
         data: Optional[List[OrderedDict]] = None
             A list of ordered dict to manage.
@@ -151,9 +182,12 @@ class SpreadSheet:
         self.index = dict(((value, num) for num, value in enumerate(index)))
         self.name = name
         self.type = iter_type
+        if self.type == IterType.iterator:
+            self.data = ListLikeIterator(data)
 
     def load_csv(self, fname: str,
-                 index: Optional[list] = None) -> 'SpreadSheet':
+                 index: Optional[list] = None,
+                 encoding: str='utf_8') -> 'SpreadSheet':
         ''' Read csv file.
         fname: str or Path
             Path of csv.
@@ -161,9 +195,9 @@ class SpreadSheet:
             Labels of csv.
             If it is None, first line of csv will be read as label.
         '''
-        with open(fname) as fp:
+        with open(fname, encoding=encoding) as fp:
             text = fp.readlines()
-        data = list(csv.reader(text))
+        data = list(csv.reader(text, dialect='excel'))
         self.index_keys = index if index else data.pop(0)
         self.index = dict(((value, num) for num, value
                            in enumerate(self.index_keys)))
@@ -175,7 +209,16 @@ class SpreadSheet:
                                 int, Column, tuple]) -> Any:
         self.calc()
         self.data = cast(list, self.data)
+        if isinstance(args, slice):
+            return Column(
+                self.data[args],
+                id(self),
+                args)
         if isinstance(args, tuple):
+            row = args[0]
+            col = args[1]
+            if isinstance(row, slice):
+                return self.data[row][self.index[args[1]]]
             return self.data[args[0]][self.index[args[1]]]
         elif self.data is None:
             return []
@@ -215,9 +258,12 @@ class SpreadSheet:
             self.data = np.array(tuple(self.data))
         elif self.type == IterType.tuple and not isinstance(self.data, tuple):
             self.data = tuple(self.data)
+        elif self.type == IterType.iterator:
+            self.data = tuple(self.data)
         return self
 
     def __str__(self) -> str:
+        self.calc()
         if not hasattr(self.data, '__len__'):
             return 'Not calculated yet'
         else:
@@ -303,7 +349,6 @@ class SpreadSheet:
                     d[index] = result
         return SpreadSheet(self.index_keys, data, self.name, self.type)
 
-
     def __len__(self) -> int:
         self.calc()
         return len(cast(list, self.data))
@@ -367,7 +412,7 @@ class SpreadSheet:
         base.data = [b+s for b, s in zip(base.data, spreadsheet.data)]
         return base
 
-    def to_csv(self, fname: Union[None, Path, str] = None) -> None:
+    def to_csv(self, fname: Union[None, Path, str] = None, encoding: str = 'utf_8') -> None:
         '''
         Write csv.
         If fname is None, just print it.
@@ -380,7 +425,7 @@ class SpreadSheet:
             for data in self.data:
                 print(join_as_csv(data))
         else:
-            with open(fname, 'w') as fp:
+            with open(fname, 'w', encoding=encoding) as fp:
                 fp.write(join_as_csv(self.index_keys))
                 fp.writelines(join_as_csv(data)
                               for data in self.data)
@@ -412,21 +457,38 @@ class SpreadSheet:
         '''
         Concatenate two spreadsheets which has same index.
         '''
+        if self.type != spreadsheet.type:
+            raise TypeError(
+                f'Two spreadsheet {self.type} and '
+                f'{spreadsheet.type} must be same'
+            )
+        if self.type == IterType.iterator:
+            result = deepcopy(self)
+            result.data = result.data + spreadsheet.data
+            return result
         self.calc()
+        spreadsheet.calc()
         if len(self.index) != len(spreadsheet.index):
             raise BaseException('Not same index')
         for m, n in zip(self.index, spreadsheet.index):
             if m != n:
                 raise BaseException('Not same index')
         result = deepcopy(self)
-        result.data = cast(list, result.data)
         result.data += spreadsheet.data
         return result
+
+    def _check_type(self, not_iterator: bool = False,
+                    has_len: bool = False) -> None:
+        if not_iterator and self.type == IterType.iterator:
+            TypeError('Iter type must not be iterator.')
+        if has_len and not hasattr(self, '__len__'):
+            TypeError('Iter type has no __len__.')
 
     def delete_column(self, label: str) -> 'SpreadSheet':
         '''
         Delete column as a mutable object.
         '''
+        self._check_type(not_iterator=True)
         index = self.index_keys.index(label)
         self.index_keys.pop(index)
         self.index.pop(label)
