@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+from typing import List
+from spreadsheet import SpreadSheet
+from argparse import ArgumentParser, RawTextHelpFormatter
+from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list, as_int, find_pair, CARD_ID, SEP, DAY
+from logging import getLogger, basicConfig, INFO, WARNING
+from datetime import date, datetime
+
+program_name = 'mergepsycho'
+parser = ArgumentParser(description=f'''
+Merge drug information csv file.
+It needs csv file from the database.
+The csv file needs to involve experiments id and subject id.
+    >> {program_name} experiment.csv drugs.csv -o out.csv
+''', formatter_class=RawTextHelpFormatter)
+
+parser.add_argument(
+    'filename',
+    type=str,
+    help='''File name of experiment csv.
+It is regular experimental csv from database.''')
+
+parser.add_argument(
+    'psycho',
+    type=str,
+    help='''File name of drug csv.
+It is psychological test file from database.''')
+
+parser.add_argument(
+    '-l',
+    '--log',
+    action='store_true',
+    help='''Show information of processing''')
+
+parser.add_argument(
+    '-o',
+    '--output',
+    type=str,
+    default='out.csv',
+    help='''File name to output.
+default is 'out.csv'.''')
+
+parser.add_argument(
+    '-e',
+    '--error',
+    type=str,
+    default='',
+    help='''File name to save error.
+If it is not be set, STDIN will be used.''')
+
+parser.add_argument(
+    '-b',
+    '--before',
+    type=int,
+    default=30,
+    help='''The day before experiment.
+If it is not be set, 30 will be used.''')
+
+parser.add_argument(
+    '-a',
+    '--after',
+    type=int,
+    default=30,
+    help='''The day after experiment.
+If it is not be set, 30 will be used.''')
+
+parser.add_argument(
+    '--enc',
+    type=str,
+    default='cp932',
+    help='''Name of encoding.[shift_jis, utf_8]''')
+
+
+args = parser.parse_args()
+basicConfig(level = INFO if args.log else WARNING)
+logger = getLogger(program_name)
+logger.info(f'( ･`ω･´)< Start running...')
+
+# Read all the csv
+args.drugfile = 'panss.csv'
+psychos = SpreadSheet().load_csv(args.psycho, encoding=args.enc)
+data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc)
+
+def make_day(day_string: str) -> datetime:
+    sep = '/'
+    if '.' in day_string:
+        sep = '.'
+    try:
+        return datetime(*(as_int(x) for x in day_string.split(sep)))
+    except:
+        return datetime(1973, 1, 1)
+
+result = SpreadSheet()
+errors: List[int] = []
+nozero: int = 0
+
+for data in data_list:
+    subject = psychos[psychos[MAIN+SUBJECT_ID] == data[SUBJECT_ID]]
+    experiment_day = make_day(data[DAY])
+
+    psycho_tests = subject.filter(
+        EXPERIMENTAL_ID+SEP+DAY,
+        lambda x: -args.before < (make_day(x) - experiment_day).days < args.after).calc()
+    if len(psycho_tests):
+        test_dict = psycho_tests[0]
+        data.update(test_dict)
+        result.add_dict(data)
+        nozero+=1
+    else:
+        errors.append(data[EXPERIMENTAL_ID])
+if args.error:
+    with open(args.error, 'w') as fp:
+        for error in errors:
+            fp.write(str(error) + '\n')
+else:
+    for error in errors:
+        print(error)
+
+result.to_csv(args.output, encoding=args.enc)
+logger.info(f'''(*´∀｀*)< Done! "{args.output}" was written.''')
