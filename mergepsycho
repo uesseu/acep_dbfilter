@@ -3,8 +3,10 @@ from typing import List
 from spreadsheet import SpreadSheet
 from argparse import ArgumentParser, RawTextHelpFormatter
 from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list, as_int, find_pair, CARD_ID, SEP, DAY
+from ninpipe import Pipe
 from logging import getLogger, basicConfig, INFO, WARNING
 from datetime import date, datetime
+from sys import stdout, stdin, stderr
 
 program_name = 'mergepsycho'
 parser = ArgumentParser(description=f'''
@@ -14,11 +16,12 @@ The csv file needs to involve experiments id and subject id.
     >> {program_name} experiment.csv drugs.csv -o out.csv
 ''', formatter_class=RawTextHelpFormatter)
 
-parser.add_argument(
-    'filename',
-    type=str,
-    help='''File name of experiment csv.
-It is regular experimental csv from database.''')
+if stdin.isatty():
+    parser.add_argument(
+        'filename',
+        type=str,
+        help='''File name of experiment csv.
+    It is regular experimental csv from database.''')
 
 parser.add_argument(
     'psycho',
@@ -36,7 +39,7 @@ parser.add_argument(
     '-o',
     '--output',
     type=str,
-    default='out.csv',
+    default='out.csv' if stdout.isatty() else None,
     help='''File name to output.
 default is 'out.csv'.''')
 
@@ -77,9 +80,11 @@ logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...')
 
 # Read all the csv
-args.drugfile = 'panss.csv'
 psychos = SpreadSheet().load_csv(args.psycho, encoding=args.enc)
-data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc)
+if stdin.isatty():
+    data_list = SpreadSheet().load_data(Pipe().get_all_lines(), encoding=args.enc)
+else:
+    data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc)
 
 def make_day(day_string: str) -> datetime:
     sep = '/'
@@ -114,7 +119,7 @@ if args.error:
             fp.write(str(error) + '\n')
 else:
     for error in errors:
-        print(error)
+        stderr.write(f'{error}\n')
 
 result.to_csv(args.output, encoding=args.enc)
 logger.info(f'''(*´∀｀*)< Done! "{args.output}" was written.''')

@@ -4,7 +4,9 @@ from spreadsheet import SpreadSheet
 from itertools import product
 from argparse import ArgumentParser, RawTextHelpFormatter
 from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list, as_int, find_pair, CARD_ID
+from ninpipe import Pipe
 from logging import getLogger, basicConfig, INFO, WARNING
+from sys import stdout, stdin
 import csv
 
 program_name = 'mergedrug'
@@ -15,11 +17,12 @@ The csv file needs to involve experiments id and subject id.
     >> {program_name} experiment.csv drugs.csv -o out.csv
 ''', formatter_class=RawTextHelpFormatter)
 
-parser.add_argument(
-    'filename',
-    type=str,
-    help='''File name of subject csv.
-It is regular experimental csv from database.''')
+if stdin.isatty():
+    parser.add_argument(
+        'filename',
+        type=str,
+        help='''File name of subject csv.
+    It is regular experimental csv from database.''')
 
 parser.add_argument(
     'drugfile',
@@ -31,9 +34,10 @@ parser.add_argument(
     '-o',
     '--output',
     type=str,
-    default='out.csv',
+    default='out.csv' if stdout.isatty() else None,
     help='''File name to output.
-default is 'out.csv'.''')
+If it is piped, no file will be written.
+Default is 'out.csv'.''')
 
 parser.add_argument(
     '-l',
@@ -45,7 +49,7 @@ parser.add_argument(
     '--enc',
     type=str,
     default='cp932',
-    help='''Name of encoding.[shift_jis, utf_8]''')
+    help='''Name of encoding.[cp932, shift_jis, utf_8]''')
 
 args = parser.parse_args()
 basicConfig(level = INFO if args.log else WARNING)
@@ -61,7 +65,10 @@ def select_experiment_id(
     return -1
 
 # Read all the csv
-drugs = SpreadSheet().load_csv(args.drugfile, encoding=args.enc)
+if stdin.isatty():
+    drugs = SpreadSheet().load_data(Pipe().get_all_lines(), encoding=args.enc)
+else:
+    drugs = SpreadSheet().load_csv(args.drugfile, encoding=args.enc)
 data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc).calc()
 experiments = list(data_list[EXPERIMENTAL_ID])
 
