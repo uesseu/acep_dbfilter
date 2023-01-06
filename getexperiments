@@ -1,69 +1,64 @@
 #!/usr/bin/env python3
-from pathlib import Path
-from collections import OrderedDict
 from typing import Callable, Optional, List, Union, cast, Iterable, Any
 from spreadsheet2 import SpreadSheet
-from sys import stdin, stdout
-from ninpipe import Pipe
-from datetime import datetime
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ninlib import (EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list,
-                    as_int, find_pair, CARD_ID, OLD_EXPERIMENTAL_ID)
+from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list, as_int, find_pair, CARD_ID
+from ninpipe import Pipe
 from logging import getLogger, basicConfig, INFO, WARNING
-import csv
+from sys import stdin, stdout
 
-program_name = 'oldexp2exp'
-parser = ArgumentParser(description='''
-Extract examination id by subject id.
+program_name = 'subj2exp'
+parser = ArgumentParser(description=f'''
+Get csv file filtered by expriment id.
 It needs csv file from the database.
 The csv file needs to involve experiments id and subject id.
+
 It returns
-    >> {program_name} subjects.csv subject_ids.csv
+    >> {program_name} experiment.csv experiment.csv -o experiments.csv
 ''', formatter_class=RawTextHelpFormatter)
 parser.add_argument(
     'filename',
     type=str,
-    help='File name of csv.')
+    help='''File name of csv.
+It is regular csv from database.''')
 
 if stdin.isatty():
     parser.add_argument(
     'id_list',
     type=str,
-    help='File name of subjects csv.')
+    help='''File name of subjects csv.
+experiments id file is just numerics separated by lines like ...
+
+1
+4
+23
+156
+''')
 
 parser.add_argument(
     '--enc',
     type=str,
     default='cp932',
-    help='''Encoding.''')
-
-parser.add_argument(
-    '-d',
-    '--noduplicate',
-    action='store_true',
-    help='''Delete duplicated studies or not. Not written yet (*_*)y=~''')
+    help='''Name of encoding.[cp932, shift_jis, utf_8, utf-8-sig]''')
 
 parser.add_argument(
     '-v',
     '--verbose',
     action='store_true',
-    help='''File name of drug csv.
-It is drug file from database.''')
+    help='''Show information of processing''')
+
 args = parser.parse_args()
-if args.verbose:
-    basicConfig(level = INFO)
-else:
-    basicConfig(level = WARNING)
+basicConfig(level = INFO if args.verbose else WARNING)
 logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...{program_name}')
+
 with open(args.filename) as fp:
     data_list = SpreadSheet().load_data(fp.readlines(), encoding=args.enc)
 if stdin.isatty():
     with open(args.id_list) as fp:
         ids = [x.strip() for x in fp.readlines()]
 else:
-    ids = Pipe().get_all_lines()
-result = data_list.isin(OLD_EXPERIMENTAL_ID, ids)[EXPERIMENTAL_ID]
-for r in result:
-    print(r)
+    ids = list(Pipe())
+data_list.isin(EXPERIMENTAL_ID, ids).to_csv()
+
 logger.info(f'''(*´∀｀*)< {program_name} has Done!''')

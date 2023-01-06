@@ -1,5 +1,6 @@
 from typing import List
 EXPERIMENTAL_ID = '受診日ID'
+OLD_EXPERIMENTAL_ID = '実験固有ID'
 SUBJECT_ID = 'ID'
 CARD_ID = 'カルテID'
 SEP = ' ::'

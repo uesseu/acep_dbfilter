@@ -59,7 +59,8 @@ else:
 logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...')
 
-data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc)
+with open(args.filename) as fp:
+    data_list = SpreadSheet().load_data(fp.readlines(), encoding=args.enc)
 if stdin.isatty():
     with open(args.id_list) as fp:
         ids = [x.strip() for x in fp.readlines()]

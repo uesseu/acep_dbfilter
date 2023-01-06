@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 from typing import List
-from spreadsheet import SpreadSheet
+from spreadsheet2 import SpreadSheet
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_id_list, as_int, find_pair, CARD_ID, SEP, DAY
+from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_int, SEP, DAY
 from ninpipe import Pipe
 from logging import getLogger, basicConfig, INFO, WARNING
-from datetime import date, datetime
-from sys import stdout, stdin, stderr
+from datetime import datetime
+from sys import stdin, stderr
 
 program_name = 'mergepsycho'
 parser = ArgumentParser(description=f'''
@@ -30,26 +30,25 @@ parser.add_argument(
 It is psychological test file from database.''')
 
 parser.add_argument(
-    '-l',
-    '--log',
+    '-v',
+    '--verbose',
     action='store_true',
     help='''Show information of processing''')
+
+parser.add_argument(
+    '-l',
+    '--label',
+    type=str,
+    default=None,
+    help='''Label of data.''')
 
 parser.add_argument(
     '-o',
     '--output',
     type=str,
-    default='out.csv' if stdout.isatty() else None,
+    default=None,
     help='''File name to output.
-default is 'out.csv'.''')
-
-parser.add_argument(
-    '-e',
-    '--error',
-    type=str,
-    default='',
-    help='''File name to save error.
-If it is not be set, STDIN will be used.''')
+If it was not written, result will be put into stdin.''')
 
 parser.add_argument(
     '-b',
@@ -71,20 +70,23 @@ parser.add_argument(
     '--enc',
     type=str,
     default='cp932',
-    help='''Name of encoding.[shift_jis, utf_8]''')
+    help='''Name of encoding.[shift_jis, utf_8_sig]''')
 
 
 args = parser.parse_args()
-basicConfig(level = INFO if args.log else WARNING)
+basicConfig(level = INFO if args.verbose else WARNING)
 logger = getLogger(program_name)
-logger.info(f'( ･`ω･´)< Start running...')
+logger.info(f'( ･`ω･´)< Start running...{program_name}')
 
 # Read all the csv
-psychos = SpreadSheet().load_csv(args.psycho, encoding=args.enc)
+with open(args.psycho) as fp:
+    psychos = SpreadSheet().load_data(fp.readlines(), encoding=args.enc)
 if stdin.isatty():
-    data_list = SpreadSheet().load_data(Pipe().get_all_lines(), encoding=args.enc)
+    with open(args.filename) as fp:
+        data_list = SpreadSheet().load_data(fp.readlines(), encoding=args.enc)
 else:
-    data_list = SpreadSheet().load_csv(args.filename, encoding=args.enc)
+    data_list = SpreadSheet().load_data(Pipe().get_all_lines(), encoding=args.enc)
+
 
 def make_day(day_string: str) -> datetime:
     sep = '/'
@@ -92,34 +94,33 @@ def make_day(day_string: str) -> datetime:
         sep = '.'
     try:
         return datetime(*(as_int(x) for x in day_string.split(sep)))
-    except:
+    except BaseException:
         return datetime(1973, 1, 1)
+
 
 result = SpreadSheet()
 errors: List[int] = []
-nozero: int = 0
 
 for data in data_list:
     subject = psychos[psychos[MAIN+SUBJECT_ID] == data[SUBJECT_ID]]
     experiment_day = make_day(data[DAY])
-
     psycho_tests = subject.filter(
         EXPERIMENTAL_ID+SEP+DAY,
-        lambda x: -args.before < (make_day(x) - experiment_day).days < args.after).calc()
+        lambda x: -args.before
+        < (make_day(x) - experiment_day).days
+        < args.after
+    ).calc()
+    psycho_tests.set_label(args.label)
     if len(psycho_tests):
         test_dict = psycho_tests[0]
         data.update(test_dict)
         result.add_dict(data)
-        nozero+=1
     else:
-        errors.append(data[EXPERIMENTAL_ID])
-if args.error:
-    with open(args.error, 'w') as fp:
-        for error in errors:
-            fp.write(str(error) + '\n')
-else:
-    for error in errors:
-        stderr.write(f'{error}\n')
+        result.add_dict(data)
+        errors.append([data[EXPERIMENTAL_ID], data[SUBJECT_ID]])
+    # if data[SUBJECT_ID] 
+for error in errors:
+    stderr.write(f'{program_name} could not get {error[0]} of {error[1]} from {args.psycho}\n')
 
-result.to_csv(args.output, encoding=args.enc)
-logger.info(f'''(*´∀｀*)< Done! "{args.output}" was written.''')
+result.to_csv(encoding=args.enc)
+logger.info(f'''(*´∀｀*)< {program_name} has merged {args.psycho}!''')
