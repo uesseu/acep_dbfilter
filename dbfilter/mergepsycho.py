@@ -98,7 +98,6 @@ def main():
     result = SpreadSheet()
     errors: List[int] = []
 
-    print(data_list)
     for data in data_list:
         subject = psychos[psychos[MAIN+SUBJECT_ID] == data[SUBJECT_ID]]
         experiment_day = make_day(data[DAY])
