@@ -1,2 +1,0 @@
-#!/usr/bin/env sh
-cat texperiments.csv | iconv -f cp932 | ./mergedrug drugs.csv --enc cp932
