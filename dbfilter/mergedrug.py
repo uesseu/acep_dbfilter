@@ -69,9 +69,12 @@ def main():
         data_list = SpreadSheet().load_data(stdin.readlines())
     experiments = [i for i in data_list[EXPERIMENTAL_ID] if i != '']
     def select_experiments(id_in_drug: str) -> str:
-        for drug_id, ex_id in product(id_in_drug.split(','), experiments):
-            if drug_id.strip() == ex_id.strip():
-                return ex_id
+        for ex_id in experiments:
+            if ex_id not in id_in_drug:
+                return ''
+            for drug_id in id_in_drug.split(','):
+                if drug_id.strip() == ex_id.strip():
+                    return ex_id
         return ''
 
     with open(args.drugfile, encoding=args.enc) as fp:
