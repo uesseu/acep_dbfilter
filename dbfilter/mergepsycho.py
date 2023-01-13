@@ -69,11 +69,12 @@ parser.add_argument(
 
 
 args = parser.parse_args()
-basicConfig(level = INFO if args.verbose else WARNING)
+basicConfig(level=INFO if args.verbose else WARNING)
 logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...{program_name}')
 
 FIRST_DATE = datetime(1973, 1, 1)
+
 
 def make_day(day_string: str) -> datetime:
     sep = '/'
@@ -95,16 +96,17 @@ def main():
         data_list = SpreadSheet().load_data(stdin.readlines())
     psychos = SpreadSheet().load_data(psycho_raw.get())
 
-
     result = SpreadSheet()
     errors: List[int] = []
 
     for data in data_list:
         subject = psychos[psychos[MAIN+SUBJECT_ID] == data[SUBJECT_ID]]
         experiment_day = make_day(data[DAY])
+
         def is_in_day(day):
             return -args.before < (make_day(day) - experiment_day).days < args.after
-        psycho_tests = subject.filter(EXPERIMENTAL_ID+SEP+DAY, is_in_day).calc()
+        psycho_tests = subject.filter(
+            EXPERIMENTAL_ID+SEP+DAY, is_in_day).calc()
         psycho_tests.set_label(args.label)
         if len(psycho_tests):
             test_dict = psycho_tests[0]
@@ -114,8 +116,11 @@ def main():
             result.add_dict(data)
             errors.append([data[EXPERIMENTAL_ID], data[SUBJECT_ID]])
     for error in errors:
-        stderr.write(f'{program_name} could not get {error[0]} of {error[1]} from {args.psycho}\n')
+        stderr.write(
+            f'{program_name} could not get {error[0]} of {error[1]} from {args.psycho}\n')
 
     result.to_csv(encoding=args.enc)
     logger.info(f'''(*´∀｀*)< {program_name} has merged {args.psycho}!''')
+
+
 main()
