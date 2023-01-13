@@ -1,4 +1,3 @@
-import sys
 from typing import Union, Callable, Optional, Any
 from pathlib import Path
 from threading import Thread
@@ -8,6 +7,7 @@ PathLike = Union[str, Path]
 class AsyncRun:
     def __init__(self, func: Callable):
         self.func = func
+
         def wrap(*args, **kwargs) -> None:
             self.result = self.func(*args, **kwargs)
         self.result: Optional[Any] = None
@@ -52,4 +52,3 @@ class TextIO:
 
     def load_lines(self) -> str:
         return self.load().split('\n')
-
