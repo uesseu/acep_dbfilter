@@ -73,6 +73,7 @@ basicConfig(level = INFO if args.verbose else WARNING)
 logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...{program_name}')
 
+FIRST_DATE = datetime(1973, 1, 1)
 
 def make_day(day_string: str) -> datetime:
     sep = '/'
@@ -81,7 +82,7 @@ def make_day(day_string: str) -> datetime:
     try:
         return datetime(*(as_int(x) for x in day_string.split(sep)))
     except BaseException:
-        return datetime(1973, 1, 1)
+        return FIRST_DATE
 
 
 def main():
@@ -101,12 +102,9 @@ def main():
     for data in data_list:
         subject = psychos[psychos[MAIN+SUBJECT_ID] == data[SUBJECT_ID]]
         experiment_day = make_day(data[DAY])
-        psycho_tests = subject.filter(
-            EXPERIMENTAL_ID+SEP+DAY,
-            lambda x: -args.before
-            < (make_day(x) - experiment_day).days
-            < args.after
-        ).calc()
+        def is_in_day(day):
+            return -args.before < (make_day(day) - experiment_day).days < args.after
+        psycho_tests = subject.filter(EXPERIMENTAL_ID+SEP+DAY, is_in_day).calc()
         psycho_tests.set_label(args.label)
         if len(psycho_tests):
             test_dict = psycho_tests[0]
