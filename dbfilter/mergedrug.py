@@ -23,7 +23,7 @@ Merge drug information csv file.
 It needs csv file from the database.
 The csv file needs to involve experiments id and subject id.
     >> {program_name} drugs.csv experiment.csv
-    >> echo experiment.csv | {program_name} drugs.csv
+    >> cat experiment.csv | {program_name} drugs.csv
 ''', formatter_class=RawTextHelpFormatter)
 
 parser.add_argument(
