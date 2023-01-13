@@ -13,4 +13,11 @@ This is useful only for lower core members of ACEP.''',
     author_email='sheepwing@kyudai.jp',
     license='MIT',
     zip_safe=False,
+    entry_points={
+        "console_scripts": [
+            "mergepsycho=dbfilter.mergepsycho:main",
+            "mergedrug=dbfilter.mergedrug:main",
+            "shrinkdrug=dbfilter.shrinkdrug:main",
+        ]
+    },
 )
