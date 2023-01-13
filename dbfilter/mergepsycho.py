@@ -3,7 +3,6 @@ from typing import List
 from spreadsheet2 import SpreadSheet
 from argparse import ArgumentParser, RawTextHelpFormatter
 from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_int, SEP, DAY
-from ninpipe import Pipe
 from logging import getLogger, basicConfig, INFO, WARNING
 from datetime import datetime
 from sys import stdin, stderr
@@ -104,7 +103,8 @@ def main():
         experiment_day = make_day(data[DAY])
 
         def is_in_day(day):
-            return -args.before < (make_day(day) - experiment_day).days < args.after
+            return -args.before < (make_day(day) - experiment_day).days\
+                < args.after
         psycho_tests = subject.filter(
             EXPERIMENTAL_ID+SEP+DAY, is_in_day).calc()
         psycho_tests.set_label(args.label)
@@ -117,7 +117,8 @@ def main():
             errors.append([data[EXPERIMENTAL_ID], data[SUBJECT_ID]])
     for error in errors:
         stderr.write(
-            f'{program_name} could not get {error[0]} of {error[1]} from {args.psycho}\n')
+            f'{program_name} could not get {error[0]} of'
+            f'{error[1]} from {args.psycho}\n')
 
     result.to_csv(encoding=args.enc)
     logger.info(f'''(*´∀｀*)< {program_name} has merged {args.psycho}!''')
