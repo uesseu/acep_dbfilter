@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-from spreadsheet2 import SpreadSheet
+from .spreadsheet2 import SpreadSheet
 from copy import deepcopy
-from textio import TextIO, AsyncRun
+from .textio import TextIO, AsyncRun
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ninlib import EXPERIMENTAL_ID
+from .ninlib import EXPERIMENTAL_ID
 from logging import getLogger, basicConfig, INFO, WARNING
 from sys import stdin
 import time
@@ -121,6 +121,3 @@ def main():
             raise er
     result.to_csv(None, encoding=args.enc)
     logger.info(f'''(*´∀｀*)< {program_name} has Done!''')
-
-
-main()

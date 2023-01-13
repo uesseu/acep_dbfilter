@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 from typing import List
-from spreadsheet2 import SpreadSheet
+from .spreadsheet2 import SpreadSheet
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_int, SEP, DAY
+from .ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_int, SEP, DAY
 from logging import getLogger, basicConfig, INFO, WARNING
 from datetime import datetime
 from sys import stdin, stderr
-from textio import TextIO, AsyncRun
+from .textio import TextIO, AsyncRun
 
 program_name = 'mergepsycho'
 parser = ArgumentParser(description=f'''
@@ -122,6 +122,3 @@ def main():
 
     result.to_csv(encoding=args.enc)
     logger.info(f'''(*´∀｀*)< {program_name} has merged {args.psycho}!''')
-
-
-main()

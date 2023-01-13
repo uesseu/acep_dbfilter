@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-from spreadsheet2 import SpreadSheet
-from textio import TextIO
+from .spreadsheet2 import SpreadSheet
+from .textio import TextIO
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ninlib import EXPERIMENTAL_ID
+from .ninlib import EXPERIMENTAL_ID
 from sys import stdin
 
 program_name = 'shrinkdrug'
@@ -40,4 +40,3 @@ def main():
 
     data_list.filter(EXPERIMENTAL_ID, lambda x: x not in NULL_ID)\
         .to_csv(None, encoding=args.enc)
-main()
