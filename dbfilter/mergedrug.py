@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
-from typing import List
 from spreadsheet2 import SpreadSheet
 from copy import deepcopy
 from textio import TextIO, AsyncRun
-from itertools import product
 from argparse import ArgumentParser, RawTextHelpFormatter
 from ninlib import EXPERIMENTAL_ID
 from logging import getLogger, basicConfig, INFO, WARNING
 from sys import stdin
 import time
+
+
 class TimeIt:
     def __init__(self) -> None:
         pass
+
     def __enter__(self) -> None:
         self.t = time.time()
+
     def __exit__(self, a, b, c) -> None:
         print(time.time() - self.t)
+
 
 program_name = 'mergedrug'
 parser = ArgumentParser(description=f'''
@@ -54,7 +57,7 @@ parser.add_argument(
     help='''Name of encoding.[cp932, shift_jis, utf_8]''')
 
 args = parser.parse_args()
-basicConfig(level = INFO if args.verbose else WARNING)
+basicConfig(level=INFO if args.verbose else WARNING)
 logger = getLogger(program_name)
 logger.info(f'( ･`ω･´)< Start running...{program_name}')
 
@@ -68,6 +71,7 @@ def main():
     else:
         data_list = SpreadSheet().load_data(stdin.readlines())
     experiments = [i for i in data_list[EXPERIMENTAL_ID] if i != '']
+
     def select_experiments(id_in_drug: str) -> str:
         for ex_id in experiments:
             if ex_id not in id_in_drug:
@@ -77,10 +81,9 @@ def main():
                     return ex_id
         return ''
 
-    with open(args.drugfile, encoding=args.enc) as fp:
-        drugs = SpreadSheet(mutable=True).load_data(drag_thread.get())
-
+    drugs = SpreadSheet(mutable=True).load_data(drag_thread.get())
     tmp_experiments = deepcopy(experiments)
+
     def select_only_exp(x):
         for n, e in enumerate(tmp_experiments):
             if e in x and e in x.split(','):
@@ -99,7 +102,7 @@ def main():
     result = SpreadSheet()
 
     res: dict
-    n = 0
+
     def is_ex(x):
         return x == ex
     for ex in experiments:
@@ -118,4 +121,6 @@ def main():
             raise er
     result.to_csv(None, encoding=args.enc)
     logger.info(f'''(*´∀｀*)< {program_name} has Done!''')
+
+
 main()
