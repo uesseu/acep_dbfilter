@@ -584,10 +584,10 @@ class SpreadSheet:
         return self
 
     def __next__(self) -> dict:
-        result = cast(dict, self[self._iter_num])
-        self._iter_num += 1
         if self._iter_max == self._iter_num:
             raise StopIteration()
+        result = cast(dict, self[self._iter_num])
+        self._iter_num += 1
         return result
 
     def rename_index(self, name: str, changed: str) -> None:
