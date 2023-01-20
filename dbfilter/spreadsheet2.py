@@ -589,3 +589,9 @@ class SpreadSheet:
         if self._iter_max == self._iter_num:
             raise StopIteration()
         return result
+
+    def rename_index(self, name: str, changed: str) -> None:
+        ind = self.index[name]
+        del self.index[name]
+        self.index[changed] = ind
+        self.index_keys.index[name] = changed

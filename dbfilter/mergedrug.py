@@ -74,8 +74,8 @@ def main():
 
     def select_experiments(id_in_drug: str) -> str:
         for ex_id in experiments:
-            if ex_id not in id_in_drug:
-                return ''
+            # if ex_id not in id_in_drug:
+            #     return ''
             for drug_id in id_in_drug.split(','):
                 if drug_id.strip() == ex_id.strip():
                     return ex_id
@@ -98,7 +98,8 @@ def main():
         .map(EXPERIMENTAL_ID, select_experiments)\
         .filter(EXPERIMENTAL_ID, is_not_empty).calc()
 
-    drugs.set_label('drug')
+    drugs.set_label('drugs')
+    # print(len(drugs.filter(EXPERIMENTAL_ID, lambda x: x == 8475)))
     result = SpreadSheet()
 
     res: dict
@@ -114,7 +115,8 @@ def main():
                 tmp_dr.update(dr[0])
                 result.add_dict(tmp_dr)
             else:
-                result.add_dict(da[0])
+                tmp_dr = da[0]
+                result.add_dict(tmp_dr)
         except IndexError as er:
             raise er
         except BaseException as er:
