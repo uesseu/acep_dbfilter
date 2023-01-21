@@ -28,13 +28,10 @@ class ListLikeIterator:
         return self
 
     def __next__(self) -> Any:
-        try:
-            result = self.data[self._iter_num].__next__()
-        except StopIteration as er:
-            self._iter_num += 1
-            if self._iter_num == len(self.data):
-                raise StopIteration()
-            result = self.data[self._iter_num].__next__()
+        if self._iter_num == len(self.data):
+            raise StopIteration()
+        result = self.data[self._iter_num]
+        self._iter_num += 1
         return result
 
     def __add__(self, data: Iterable) -> 'ListLikeIterator':
@@ -148,6 +145,10 @@ class Column:
         self()
         return Column(cast(list, self.data)+cast(list, target),
                       id(self), self.label, True)
+
+    def to(self, func: Callable) -> Any:
+        return func(self.data)
+
 
     def __call__(self) -> 'Column':
         if not self.has_list:
