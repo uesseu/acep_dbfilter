@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='dbfilter',
-    version='0.0.0',
+    version='0.0.1',
     package_dir={'dbfilter': 'dbfilter'},
     packages=find_packages(),
     description='Tools to manage ACEP project.',
