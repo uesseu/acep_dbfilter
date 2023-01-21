@@ -36,7 +36,7 @@ pip install -e acep_dbfilter
 先ずは、このソフトをアンインストールして下さい。
 
 ```
-pip install -e dbfilter
+pip uninstall dbfilter
 ```
 
 その上で、上記のインストールの手順を踏んで下さい。
