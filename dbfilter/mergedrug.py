@@ -5,7 +5,7 @@ from .textio import TextIO, AsyncRun
 from argparse import ArgumentParser, RawTextHelpFormatter
 from .ninlib import EXPERIMENTAL_ID
 from logging import getLogger, basicConfig, INFO, WARNING
-from sys import stdin
+from sys import stdin, stderr
 import time
 
 
@@ -74,8 +74,6 @@ def main():
 
     def select_experiments(id_in_drug: str) -> str:
         for ex_id in experiments:
-            # if ex_id not in id_in_drug:
-            #     return ''
             for drug_id in id_in_drug.split(','):
                 if drug_id.strip() == ex_id.strip():
                     return ex_id
@@ -86,7 +84,7 @@ def main():
 
     def select_only_exp(x):
         for n, e in enumerate(tmp_experiments):
-            if e in x and e in x.split(','):
+            if e in x.split(','):
                 del tmp_experiments[n]
                 return True
         return False
@@ -99,13 +97,13 @@ def main():
         .filter(EXPERIMENTAL_ID, is_not_empty).calc()
 
     drugs.set_label('drugs')
-    # print(len(drugs.filter(EXPERIMENTAL_ID, lambda x: x == 8475)))
     result = SpreadSheet()
 
     res: dict
 
     def is_ex(x):
         return x == ex
+
     for ex in experiments:
         try:
             dr = drugs.filter(EXPERIMENTAL_ID, is_ex).calc()
