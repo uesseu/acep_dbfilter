@@ -100,8 +100,9 @@ def main():
     id_style_example = list(data_list[SUBJECT_ID].data)[0]
     label = id_style_example.split('_')[0] if '_' in id_style_example else ''
     for data in data_list:
-        subject = psychos[psychos[MAIN+SUBJECT_ID]
-                          == '_'.join((label, data[SUBJECT_ID]))]
+        subject_id = '_'.join((label, data[SUBJECT_ID])) if label else data[SUBJECT_ID]
+        subject = psychos[psychos[MAIN+SUBJECT_ID] == subject_id]
+        # stderr.write(str('_'.join((label, data[SUBJECT_ID]))) + '\n')
         experiment_day = make_day(data[DAY])
 
         def is_in_day(day):
@@ -119,7 +120,7 @@ def main():
             errors.append([data[EXPERIMENTAL_ID], data[SUBJECT_ID]])
     for error in errors:
         stderr.write(
-            f'{program_name} could not get {error[0]} of'
+            f'{program_name} could not get {error[0]} of '
             f'{error[1]} from {args.psycho}\n')
 
     result.to_csv(encoding=args.enc)
