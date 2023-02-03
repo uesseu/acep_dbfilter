@@ -102,7 +102,6 @@ def main():
     for data in data_list:
         subject_id = '_'.join((label, data[SUBJECT_ID])) if label else data[SUBJECT_ID]
         subject = psychos[psychos[MAIN+SUBJECT_ID] == subject_id]
-        # stderr.write(str('_'.join((label, data[SUBJECT_ID]))) + '\n')
         experiment_day = make_day(data[DAY])
 
         def is_in_day(day):
@@ -124,4 +123,3 @@ def main():
             f'{error[1]} from {args.psycho}\n')
 
     result.to_csv(encoding=args.enc)
-    # logger.info(f'''(*´∀｀*)< {program_name} has merged {args.psycho}!''')
