@@ -9,17 +9,6 @@ from sys import stdin, stderr
 import time
 
 
-class TimeIt:
-    def __init__(self) -> None:
-        pass
-
-    def __enter__(self) -> None:
-        self.t = time.time()
-
-    def __exit__(self, a, b, c) -> None:
-        print(time.time() - self.t)
-
-
 program_name = 'mergedrug'
 parser = ArgumentParser(description=f'''
 Merge drug information csv file.
@@ -109,8 +98,8 @@ def main():
             dr = drugs.filter(EXPERIMENTAL_ID, is_ex).calc()
             da = data_list.filter(EXPERIMENTAL_ID, is_ex).calc()
             if len(dr) != 0:
-                tmp_dr = da[0]
-                tmp_dr.update(dr[0])
+                tmp_dr = dr[0]
+                tmp_dr.update(da[0])
                 result.add_dict(tmp_dr)
             else:
                 tmp_dr = da[0]

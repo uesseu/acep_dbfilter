@@ -72,8 +72,10 @@ Git bashを使うとiconvも入るかも。今度調べます。
 # 具体的な使い方
 まずは、エクセルファイルをACEPのデータから取り出します。
 その上で、それをCSVファイルに変換して下さい。
-CSVファイルのエンコードにUTFを指定しないで下さい。
-通常、cp932になるはずです。
+もし、エクセルで変換するならばCSVファイルのエンコードにUTFを指定しないで下さい。
+通常、エクセルで変換したら形式はcp932というものになるはずです。
+LibreOfficeでCSVに変換する場合には、UTFを指定しても大丈夫ですから、
+LibreOfficeの方が楽です。
 
 必要物品
 - 実験ファイル
@@ -85,7 +87,8 @@ CSVファイルのエンコードにUTFを指定しないで下さい。
 - drugs.csv
 - psy.csv
 
-という名前だとしてコードを書きます。
+という名前だとしてコードを書きます。  
+
 
 ```sh
 # まず、コードをUTFに変える。
@@ -93,17 +96,13 @@ cat exp.csv | iconv -f cp932 > exp-utf.csv
 cat drugs.csv | iconv -f cp932 > drugs-utf.csv
 cat psy.csv | iconv -f cp932 > psy-utf.csv
 
-# 薬剤情報は巨大なので無駄を削ぐ
-cat drugs-utf.csv | shrinkdrug > shrinked-drugs-utf.csv
-
 # 薬剤情報と心理検査をくっつける
 cat exp-utf.csv\
-    | mergedrug shrinked-drugs-utf.csv\
+    | mergedrug drugs-utf.csv\
     | mergepsycho panss-utf.csv > result.csv
 ```
 
 # TODO
-- 他の大学のフォーマットに対応する。
 - Windows単体で動かしたい。
 
 # FAQ

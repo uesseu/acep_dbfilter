@@ -2,7 +2,8 @@
 from typing import List
 from .spreadsheet2 import SpreadSheet
 from argparse import ArgumentParser, RawTextHelpFormatter
-from .ninlib import EXPERIMENTAL_ID, MAIN, SUBJECT_ID, as_int, SEP, DAY
+from .ninlib import (EXPERIMENTAL_ID, MAIN, SUBJECT_ID,
+                     as_int, SEP, DAY, IDConstructor)
 from logging import getLogger, basicConfig, INFO, WARNING
 from datetime import datetime
 from sys import stdin, stderr
@@ -94,15 +95,15 @@ def main():
     else:
         data_list = SpreadSheet().load_data(stdin.readlines())
     psychos = SpreadSheet().load_data(psycho_raw.get())
+    idc = IDConstructor().get_inst_id(data_list, SUBJECT_ID)
+    psychos = psychos.map(MAIN+SUBJECT_ID, idc.add_inst_id).calc()
 
     result = SpreadSheet()
     errors: List[int] = []
     id_style_example = list(data_list[SUBJECT_ID].data)[0]
     label = id_style_example.split('_')[0] if '_' in id_style_example else ''
     for data in data_list:
-        subject_id = '_'.join((label, data[SUBJECT_ID])) if label else data[SUBJECT_ID]
-        if '_' in subject_id:
-            subject_id = subject_id.split('_')[1]
+        subject_id = data[SUBJECT_ID]
         subject = psychos[psychos[MAIN+SUBJECT_ID] == subject_id]
         experiment_day = make_day(data[DAY])
         def is_in_day(day):
