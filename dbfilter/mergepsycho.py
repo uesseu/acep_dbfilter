@@ -101,9 +101,10 @@ def main():
     label = id_style_example.split('_')[0] if '_' in id_style_example else ''
     for data in data_list:
         subject_id = '_'.join((label, data[SUBJECT_ID])) if label else data[SUBJECT_ID]
+        if '_' in subject_id:
+            subject_id = subject_id.split('_')[1]
         subject = psychos[psychos[MAIN+SUBJECT_ID] == subject_id]
         experiment_day = make_day(data[DAY])
-
         def is_in_day(day):
             return -args.before < (make_day(day) - experiment_day).days\
                 < args.after
