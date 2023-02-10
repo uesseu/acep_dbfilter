@@ -54,7 +54,14 @@ def join_as_csv(texts: Iterable[str]) -> str:
     return ','.join(f'"{text}"' for text in texts) + '\n'
 
 
-def set_text_length(text: str, length: int) -> str:
+def adjust_text_length(text: str, length: int) -> str:
+    '''
+    Fill text to make the length same as given number.
+    text: str
+        Text to adjust.
+    length: int
+        Required length of text.
+    '''
     text_length = len(text)
     if text_length < length:
         text = text + ' ' * (length - len(text))
@@ -305,11 +312,15 @@ class SpreadSheet:
                 texts.append(d)
             for n, i in enumerate(self.index_keys):
                 length.append(max(len(as_str(t[n])) for t in texts))
-            result.append(' '.join((set_text_length(as_str(i), length[n])
-                                    for n, i in enumerate(self.index_keys))))
+            result.append(
+                ' '.join((
+                    adjust_text_length(as_str(i), length[n])
+                    for n, i
+                    in enumerate(self.index_keys)))
+            )
             for d in cast(list, self.data)[:max_len]:
                 result.append(' '.join(
-                    (set_text_length(as_str(x), length[n])
+                    (adjust_text_length(as_str(x), length[n])
                      for n, x in enumerate(d))))
             return '\n'.join(result)
 
