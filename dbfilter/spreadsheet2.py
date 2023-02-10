@@ -203,7 +203,7 @@ class SpreadSheet:
         '''
         self.data = data
         self.index_keys = index
-        self.raw_index_keys = copy(self.index_keys)
+        self.raw_index_keys = deepcopy(self.index_keys)
         self.name = name
         self.index = dict(((value, num) for num, value in enumerate(index)))
         self.raw_index = copy(self.index)
@@ -212,13 +212,13 @@ class SpreadSheet:
         if self.type == IterType.iterator:
             self.data = ListLikeIterator(data)
 
-    def set_label(self, name: Optional[str] = None) -> 'SpreadSheet':
+    def set_label(self, name: Optional[str] = None, sep: str = '::') -> 'SpreadSheet':
         if name:
-            self.index_keys = ['::'.join((name, i)) for i in self.raw_index_keys]
+            self.index_keys = [sep.join((name, i)) for i in self.raw_index_keys]
             self.index = dict(((value, num) for num, value in enumerate(self.index_keys)))
         else:
-            self.index_keys = copy(self.raw_index_keys)
-            self.index = copy(self.raw_index)
+            self.index_keys = deepcopy(self.raw_index_keys)
+            self.index = deepcopy(self.raw_index)
         return self
 
     def remove_label(self) -> 'SpreadSheet':
