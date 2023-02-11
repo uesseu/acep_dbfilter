@@ -1,5 +1,5 @@
 from typing import (Callable, Optional, List, Union, cast,
-                    Iterable, Any, Iterator)
+                    Iterable, Any, Iterator, Dict, Generator)
 from pathlib import Path
 from copy import deepcopy, copy
 import csv
@@ -124,8 +124,8 @@ class Column:
         self.target = target
         return (x != target for x in self.data)
 
-    def __iter__(self) -> Iterable:
-        return self.data.__iter__()
+    def __iter__(self) -> Generator:
+        return self.data
 
     def __add__(self, column: 'Column') -> 'Column':
         result = deepcopy(self)
@@ -156,7 +156,6 @@ class Column:
     def to(self, func: Callable) -> Any:
         return func(self.data)
 
-
     def __call__(self) -> 'Column':
         if not self.has_list:
             self.data = list(self.data)
@@ -182,6 +181,34 @@ def as_itertype(obj: Union[np.ndarray, tuple, list, Iterable],
     elif iter_type == IterType.tuple:
         return tuple(obj)
     return []
+
+
+class IndexKey:
+    def __init__(self, index: List[str], label: Optional[str] = None,
+                 with_label: bool = False):
+        self.index_keys = index
+        self.index = dict(((value, num) for num, value in enumerate(index)))
+        self.label = label
+        self.with_label = with_label
+
+    def __getitem__(self, name: str) -> int:
+        if self.with_label:
+            return self.index[name]
+        return self.index[self.sep.join((self.label, name))]
+
+    def set_label(self, label: Optional[str]):
+        self.label = label
+
+    def make_labeled_keys(self) -> List[str]:
+        if self.label is None:
+            return self.index_keys
+        return [self.sep.join((self.label, i)) for i in self.index_keys]
+
+    def make_labeled(self) -> Dict[str, int]:
+        if self.label is None:
+            return self.index
+        return dict(((value, num) for num, value
+                     in enumerate(self.index_keys)))
 
 
 class SpreadSheet:
@@ -227,10 +254,7 @@ class SpreadSheet:
         return self
 
     def load_data(self, texts: List[str]) -> 'SpreadSheet':
-        ''' Read csv file.
-        tests: str or Path
-            Path of csv.
-        '''
+        ''' Read csv data. '''
         data = [d for d in csv.reader(texts, dialect='excel') if len(d) != 0]
         self.index_keys = data.pop(0)
         self.index = dict(((value, num) for num, value
@@ -399,36 +423,29 @@ class SpreadSheet:
             It gets dictionary and returns value.
         '''
         self.calc()
-        self.raw_index_keys.append(new_label)
         self.raw_index = dict(((value, num) for num, value
-                           in enumerate(self.raw_index_keys)))
+                               in enumerate(self.raw_index_keys)))
+        self.index.index = dict(((value, num) for num, value
+                                 in enumerate(self.raw_index_keys)))
         for data in self.data:
             data.append(func(dict(zip(self.raw_index_keys, data))))
         self.set_label(self.name)
         return self
 
-    def make_dict(self, label: str, element: Optional[str] = None) -> dict:
-        '''
-        Convert itself as dictionary.
-        Values is iterator of data.
-
-        label: str
-            Keys of dictionary.
-        element: Optional[str]
-            Value of dictionary.
-            If it is None, all the items will be contained.
-        '''
-        return dict(zip(self[label], self[element] if element else self.data))
 
     def concat(spreadsheet: 'SpreadSheet', self, label: str,
                anotherlabel: Optional[str] = None) -> 'SpreadSheet':
         '''
         Concatnates two spread sheets by label.
 
-        label: str
-            Label name to concatnate.
         spreadsheet: SpreadSheet
             SpreadSheet object to append.
+        label: str
+            Label name to concatnate.
+        anotherlabel: Optional[str]
+            If two label name is differ from each other,
+            another label can be selected.
+            Another label is label of spreadsheet which is in argument.
         '''
         if not anotherlabel:
             anotherlabel = label
@@ -447,7 +464,7 @@ class SpreadSheet:
                encoding: str = 'utf_8') -> None:
         '''
         Write csv.
-        If fname is None, just print it.
+        If fname is None, just print it to stdin.
 
         fname: Union[Path, str]
             File name of csv.
