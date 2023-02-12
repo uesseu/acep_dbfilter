@@ -96,7 +96,8 @@ def main():
         data_list = SpreadSheet().load_data(stdin.readlines())
     psychos = SpreadSheet().load_data(psycho_raw.get())
     idc = IDConstructor().get_inst_id(data_list, SUBJECT_ID)
-    psychos = psychos.map(MAIN+SUBJECT_ID, idc.add_inst_id).calc()
+    if idc.has_instid():
+        psychos = psychos.map(MAIN+SUBJECT_ID, idc.add_inst_id).calc()
 
     result = SpreadSheet()
     errors: List[int] = []

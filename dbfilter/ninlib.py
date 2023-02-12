@@ -36,6 +36,9 @@ class IDConstructor:
         self.inst_length = len(label)
         return self
 
+    def has_instid(self) -> bool:
+        return self.inst != ''
+
     def get_inst_id(self, sp: SpreadSheet, label: str) -> 'IDConstructor':
         '''Returns univ label
         sp: SpreadSheet
