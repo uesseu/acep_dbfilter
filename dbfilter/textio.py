@@ -1,8 +1,11 @@
 from typing import Union, Callable, Optional, Any
 from pathlib import Path
 from threading import Thread
+from logging import getLogger
 PathLike = Union[str, Path]
+logger = getLogger()
 
+utf_bom = b'\xef\xbb\xbf'
 
 class AsyncRun:
     def __init__(self, func: Callable):
@@ -39,8 +42,11 @@ class TextIO:
         try:
             with open(self.filename, 'rb') as fp:
                 data = fp.read()
+                if data[0:3] == utf_bom:
+                    data = data[3:]
+                    logger.info('Bom was removed')
         except BaseException as er:
-            raise er
+            raise er('File itself is broken heavily')
         for encoding in self.encodes:
             try:
                 result = data.decode()
